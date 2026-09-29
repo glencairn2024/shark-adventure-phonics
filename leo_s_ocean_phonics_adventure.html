@@ -1,0 +1,1139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Leo's Ocean & Phonics Adventure</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome for clean accessible icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts: Fredoka & Comic Neue for high legibility for young readers -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Comic+Neue:wght@400;700&family=Fredoka:wght@500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        * {
+            font-family: 'Fredoka', 'Comic Neue', sans-serif;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* Large readable body text sizes for 8-year-old early/non-readers */
+        .story-text-size {
+            font-size: 30px;
+            line-height: 1.6;
+            letter-spacing: 0.02em;
+        }
+
+        /* Clickable word styling for tap-to-read feature */
+        .word-span {
+            display: inline-block;
+            padding: 2px 6px;
+            margin: 2px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.15s ease-in-out;
+            background-color: transparent;
+        }
+
+        .word-span:hover {
+            background-color: #e0f2fe;
+            color: #0284c7;
+            transform: scale(1.06);
+        }
+
+        /* Active word highlighting during speech playback */
+        .word-highlight {
+            background-color: #ffeb3b !important;
+            color: #000000 !important;
+            font-weight: 700;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(255, 235, 59, 0.8);
+            transform: scale(1.12);
+        }
+
+        /* Active sentence outline highlighting */
+        .sentence-active {
+            border-bottom: 3px dashed #0284c7;
+        }
+
+        /* Custom pulsing animations for hotspots and buttons */
+        @keyframes pulse-gentle {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.12); }
+        }
+
+        .animate-hotspot {
+            animation: pulse-gentle 2.2s infinite ease-in-out;
+        }
+
+        /* Custom scrollbar for visual appeal */
+        ::-webkit-scrollbar {
+            width: 12px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #e0f2fe;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #0284c7;
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-b from-sky-400 via-teal-500 to-blue-900 min-h-screen text-slate-900 pb-12">
+
+    <header class="sticky top-0 z-50 bg-white/95 backdrop-blur-md shadow-xl border-b-4 border-sky-300 px-4 py-3">
+        <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3">
+            
+            <!-- App Branding -->
+            <div class="flex items-center gap-3">
+                <div class="bg-amber-400 text-blue-950 p-3 rounded-2xl shadow-md text-2xl font-black flex items-center gap-2">
+                    <span>🐢</span>
+                    <span class="hidden sm:inline">Leo's Ocean Adventure</span>
+                </div>
+            </div>
+
+            <!-- Speech Audio Controls -->
+            <div class="flex flex-wrap items-center gap-2 sm:gap-4">
+                <!-- Play / Read To Me Button -->
+                <button id="btn-read-page" onclick="toggleReadPage()" class="bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xl px-5 py-3 rounded-2xl shadow-lg border-b-4 border-emerald-700 active:translate-y-1 transition-all flex items-center gap-2">
+                    <i class="fa-solid fa-volume-high text-2xl" id="read-icon"></i>
+                    <span id="read-text">Read To Me</span>
+                </button>
+
+                <!-- Pause / Resume Button -->
+                <button id="btn-pause" onclick="pauseSpeech()" class="bg-amber-500 hover:bg-amber-600 text-white font-bold text-xl px-4 py-3 rounded-2xl shadow-lg border-b-4 border-amber-700 active:translate-y-1 transition-all flex items-center gap-2" title="Pause Speech">
+                    <i class="fa-solid fa-pause text-2xl" id="pause-icon"></i>
+                </button>
+
+                <!-- Stop Speech Button -->
+                <button id="btn-stop" onclick="stopSpeech()" class="bg-rose-500 hover:bg-rose-600 text-white font-bold text-xl px-4 py-3 rounded-2xl shadow-lg border-b-4 border-rose-700 active:translate-y-1 transition-all flex items-center gap-2" title="Stop Speech">
+                    <i class="fa-solid fa-square text-2xl"></i>
+                </button>
+
+                <!-- Voice Selection Dropdown -->
+                <div class="flex items-center gap-2 bg-sky-100 p-2 rounded-2xl border-2 border-sky-300">
+                    <i class="fa-solid fa-user-gear text-sky-700 text-xl pl-1"></i>
+                    <select id="voice-select" onchange="onVoiceChange()" class="bg-white text-slate-800 text-lg font-semibold py-1.5 px-3 rounded-xl border border-sky-200 outline-none max-w-[180px] sm:max-w-[220px]">
+                        <option value="">Loading Voices...</option>
+                    </select>
+                </div>
+
+                <!-- Reading Speed Toggle -->
+                <button id="btn-speed" onclick="toggleSpeed()" class="bg-sky-200 hover:bg-sky-300 text-sky-900 font-bold text-lg px-3 py-2 rounded-xl border-2 border-sky-400 flex items-center gap-1">
+                    <i class="fa-solid fa-gauge-high"></i>
+                    <span id="speed-label">1.0x</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 pt-6 space-y-6">
+
+        <!-- Navigation Banner & Chapter Selector -->
+        <div class="bg-white/90 backdrop-blur-md rounded-3xl p-4 shadow-2xl border-4 border-amber-300 flex flex-wrap items-center justify-between gap-4">
+            
+            <!-- Previous Chapter Button -->
+            <button id="btn-prev" onclick="changeChapter(-1)" class="bg-sky-500 hover:bg-sky-600 text-white font-bold text-2xl px-6 py-3 rounded-2xl shadow-lg border-b-4 border-sky-700 active:translate-y-1 transition-all flex items-center gap-2">
+                <i class="fa-solid fa-arrow-left"></i>
+                <span class="hidden md:inline">Back</span>
+            </button>
+
+            <!-- Chapter Picker Dropdown & Title -->
+            <div class="flex flex-col items-center flex-1 min-w-[240px]">
+                <div class="flex items-center gap-2">
+                    <label for="chapter-select" class="text-sky-900 font-bold text-lg hidden sm:inline">Chapter:</label>
+                    <select id="chapter-select" onchange="jumpToChapter(this.value)" class="bg-amber-100 text-amber-950 text-xl font-bold py-2 px-4 rounded-2xl border-2 border-amber-400 shadow-inner outline-none cursor-pointer">
+                        <!-- Populated by JavaScript -->
+                    </select>
+                </div>
+                <div id="chapter-progress-text" class="text-sky-800 font-semibold text-base mt-1">
+                    Chapter 1 of 16
+                </div>
+            </div>
+
+            <!-- Next Chapter Button -->
+            <button id="btn-next" onclick="changeChapter(1)" class="bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-2xl px-6 py-3 rounded-2xl shadow-lg border-b-4 border-emerald-700 active:translate-y-1 transition-all flex items-center gap-2">
+                <span class="hidden md:inline">Next</span>
+                <i class="fa-solid fa-arrow-right"></i>
+            </button>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+            
+            <!-- Left Panel: SVG Interactive Scene (5 cols on desktop) -->
+            <div class="lg:col-span-5 bg-gradient-to-b from-sky-300 via-sky-500 to-indigo-900 rounded-3xl p-4 border-4 border-sky-200 shadow-2xl relative overflow-hidden min-h-[380px] sm:min-h-[440px] flex flex-col justify-between">
+                
+                <!-- Title Overlay -->
+                <div class="bg-slate-900/70 text-white px-4 py-2 rounded-2xl backdrop-blur-sm border border-white/20 self-start text-lg font-bold flex items-center gap-2 z-10">
+                    <i class="fa-solid fa-hand-pointer text-amber-300 animate-bounce"></i>
+                    <span>Tap objects for fun facts & sounds!</span>
+                </div>
+
+                <!-- Dynamic Interactive Hotspots Container -->
+                <div id="scene-container" class="absolute inset-0 w-full h-full">
+                    <!-- SVG Ocean Background and Hotspots injected here -->
+                </div>
+
+                <!-- Fact Speech Popup Box -->
+                <div id="hotspot-fact-box" class="z-20 bg-amber-100 text-amber-950 p-4 rounded-2xl border-4 border-amber-400 shadow-2xl text-xl font-bold flex items-start justify-between gap-3 transform transition-all duration-300 opacity-0 scale-95 pointer-events-none mt-auto">
+                    <div class="flex items-start gap-3">
+                        <span id="fact-icon" class="text-3xl">🐬</span>
+                        <div>
+                            <span id="fact-title" class="block text-sky-900 text-sm font-black uppercase tracking-wider">Ocean Discovery!</span>
+                            <span id="fact-text" class="text-xl leading-snug">Tap a creature above to learn a secret!</span>
+                        </div>
+                    </div>
+                    <button onclick="closeFactBox()" class="text-amber-800 hover:text-amber-950 text-2xl font-bold px-2">✕</button>
+                </div>
+            </div>
+
+            <!-- Right Panel: Story Chapter Text (7 cols on desktop) -->
+            <div class="lg:col-span-7 bg-white/95 rounded-3xl p-6 sm:p-8 border-4 border-sky-300 shadow-2xl flex flex-col justify-between space-y-6">
+                
+                <!-- Chapter Header -->
+                <div class="border-b-2 border-sky-100 pb-4">
+                    <div class="flex items-center justify-between">
+                        <span id="chapter-badge" class="bg-sky-100 text-sky-800 text-lg font-bold px-4 py-1.5 rounded-full border border-sky-300">
+                            Chapter 1
+                        </span>
+                        <button onclick="speakCurrentSentenceOrAll()" class="text-sky-600 hover:text-sky-800 text-lg font-bold flex items-center gap-1 bg-sky-50 px-3 py-1 rounded-xl border border-sky-200">
+                            <i class="fa-solid fa-ear-listen"></i>
+                            <span>Listen to page</span>
+                        </button>
+                    </div>
+                    <h1 id="chapter-title" class="text-3xl sm:text-4xl font-extrabold text-sky-950 mt-2">
+                        1. The Gentle Whale Shark
+                    </h1>
+                </div>
+
+                <!-- Story Text Display (Interactive Word Spans) -->
+                <div id="story-display" class="story-text-size font-medium text-slate-800 leading-relaxed bg-sky-50/50 p-6 rounded-2xl border-2 border-sky-100 min-h-[220px]">
+                    <!-- Interactive text spans injected dynamically -->
+                </div>
+
+                <!-- Tap Word Hint Bar -->
+                <div class="bg-amber-50 text-amber-900 px-4 py-2 rounded-2xl border border-amber-200 text-lg font-semibold flex items-center gap-2">
+                    <i class="fa-solid fa-lightbulb text-amber-500 text-2xl"></i>
+                    <span><strong>Pro Tip for Readers:</strong> Tap any single word above to hear it spoken!</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-gradient-to-r from-amber-100 via-orange-100 to-amber-200 rounded-3xl p-6 sm:p-8 border-4 border-amber-400 shadow-2xl space-y-6">
+            
+            <div class="flex flex-wrap items-center justify-between gap-4 border-b-2 border-amber-300/60 pb-4">
+                <div class="flex items-center gap-3">
+                    <div class="bg-amber-500 text-white p-3 rounded-2xl shadow-md text-2xl">
+                        <i class="fa-solid fa-puzzle-piece"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-2xl sm:text-3xl font-extrabold text-amber-950">Phonics & Story Question</h2>
+                        <p class="text-amber-800 text-lg font-semibold">Listen to the question and choose the right answer!</p>
+                    </div>
+                </div>
+
+                <!-- Listen to Question Audio Button -->
+                <button onclick="speakQuestionAudio()" class="bg-amber-500 hover:bg-amber-600 text-white text-xl font-bold px-5 py-2.5 rounded-2xl shadow-md border-b-4 border-amber-700 flex items-center gap-2 active:translate-y-1 transition-all">
+                    <i class="fa-solid fa-volume-high text-xl"></i>
+                    <span>Read Question</span>
+                </button>
+            </div>
+
+            <!-- Question Box -->
+            <div class="bg-white/90 p-5 rounded-2xl border-2 border-amber-300 text-2xl font-bold text-slate-900 shadow-inner flex items-center gap-4">
+                <span id="question-icon" class="text-3xl">❓</span>
+                <span id="quiz-question-text">Question loading...</span>
+            </div>
+
+            <!-- Quiz Options (2 Big Easy-to-Click Buttons) -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="quiz-options-container">
+                <!-- Option buttons injected here -->
+            </div>
+
+            <!-- Quiz Feedback Alert Box -->
+            <div id="quiz-feedback" class="hidden p-4 rounded-2xl text-2xl font-extrabold text-center transition-all shadow-lg flex items-center justify-center gap-3">
+                <span id="feedback-icon" class="text-3xl">🌟</span>
+                <span id="feedback-text">Great job! You got it right!</span>
+            </div>
+        </div>
+
+    </main>
+
+    <script>
+        const storyChapters = [
+            {
+                id: 1,
+                title: "1. The Gentle Whale Shark",
+                text: "Leo swims into the warm ocean. He meets Whaley, a gigantic Whale Shark! Whaley is as long as a school bus. But Whaley is very gentle. Whaley eats tiny plankton with his giant mouth. Leo learns that big ocean friends can be soft and kind. When Whaley feels crowded, he keeps his fins to himself and takes slow, deep breaths.",
+                hotspots: [
+                    { id: "whale-shark", label: "Whale Shark", icon: "🐋", x: "45%", y: "35%", fact: "Whale sharks are the biggest fish in the ocean, but they only eat tiny plankton!" },
+                    { id: "plankton", label: "Plankton", icon: "✨", x: "75%", y: "50%", fact: "Plankton are micro-creatures floating in ocean currents." },
+                    { id: "bubble-1", label: "Bubbles", icon: "🫧", x: "20%", y: "25%", fact: "Bubbles float up because air is lighter than sea water!" },
+                    { id: "coral-1", label: "Pink Coral", icon: "🪸", x: "15%", y: "75%", fact: "Coral reefs are colorful ocean homes for thousands of sea animals." }
+                ],
+                quiz: {
+                    question: "What does the giant Whale Shark eat?",
+                    audioQuestion: "What does the giant Whale Shark eat?",
+                    options: [
+                        { text: "A) Tiny Plankton", correct: true, audio: "Option A: Tiny Plankton" },
+                        { text: "B) Big Hamburgers", correct: false, audio: "Option B: Big Hamburgers" }
+                    ]
+                }
+            },
+            {
+                id: 2,
+                title: "2. The Great White Shark's Big Teeth",
+                text: "Next, Leo meets Barnaby the Great White Shark. Barnaby has hundreds of shiny teeth! When Barnaby loses a tooth, a new one grows right back. Barnaby was once afraid of losing his teeth. Now, when he feels nervous or upset, Barnaby stops and takes three deep breaths. Breathing helps him feel calm and safe.",
+                hotspots: [
+                    { id: "white-shark", label: "Great White", icon: "🦈", x: "40%", y: "40%", fact: "Great White sharks can grow up to twenty thousand teeth in their lifetime!" },
+                    { id: "tooth", label: "Shark Tooth", icon: "🦷", x: "65%", y: "60%", fact: "Shark teeth fall out naturally and grow back in rows like a conveyor belt!" },
+                    { id: "sea-weed", label: "Seaweed", icon: "🌿", x: "80%", y: "75%", fact: "Seaweed makes oxygen for our planet using sunlight!" },
+                    { id: "small-fish", label: "Little Fish", icon: "🐟", x: "20%", y: "60%", fact: "Fish swim together in big groups called schools for safety." }
+                ],
+                quiz: {
+                    question: "What does Barnaby do when he feels nervous?",
+                    audioQuestion: "What does Barnaby do when he feels nervous?",
+                    options: [
+                        { text: "A) Takes deep breaths", correct: true, audio: "Option A: Takes deep breaths" },
+                        { text: "B) Yells out loud", correct: false, audio: "Option B: Yells out loud" }
+                    ]
+                }
+            },
+            {
+                id: 3,
+                title: "3. The Hammerhead's Wide Vision",
+                text: "Leo spots Hammerhead Hannah! Her head is shaped like a wide hammer. She has eyes on the far sides of her head. This helps her look all around the ocean floor. Hannah shows Leo how important it is to look carefully at what you are doing. When Leo pays attention to his teacher, he learns brand new words!",
+                hotspots: [
+                    { id: "hammerhead", label: "Hammerhead", icon: "🦈", x: "50%", y: "30%", fact: "Hammerhead sharks can see above and below them almost all the time!" },
+                    { id: "stingray", label: "Stingray", icon: "🪼", x: "30%", y: "70%", fact: "Stingrays use special sensors under their snout to find hidden food." },
+                    { id: "shell", label: "Sea Shell", icon: "🐚", x: "70%", y: "80%", fact: "Sea shells are hard protective coats made by ocean creatures." },
+                    { id: "crab", label: "Little Crab", icon: "🦀", x: "15%", y: "80%", fact: "Crabs walk sideways on their ten tiny legs!" }
+                ],
+                quiz: {
+                    question: "Why does Hammerhead Hannah have wide eyes?",
+                    audioQuestion: "Why does Hammerhead Hannah have wide eyes?",
+                    options: [
+                        { text: "A) To look all around", correct: true, audio: "Option A: To look all around" },
+                        { text: "B) To wear giant sunglasses", correct: false, audio: "Option B: To wear giant sunglasses" }
+                    ]
+                }
+            },
+            {
+                id: 4,
+                title: "4. The Tiger Shark's Cool Stripes",
+                text: "Leo meets Timmy the Tiger Shark. Timmy has dark stripes along his back. When Timmy was little, his stripes were bright and dark. As he grows older, his stripes gently fade away. Timmy learns to use kind words when speaking to his friends. Kind words make everyone feel happy and safe in the reef.",
+                hotspots: [
+                    { id: "tiger-shark", label: "Tiger Shark", icon: "🦈", x: "45%", y: "45%", fact: "Young tiger sharks have dark stripes that fade as they grow into adults!" },
+                    { id: "sun-rays", label: "Sunlight", icon: "☀️", x: "50%", y: "15%", fact: "Sunlight shines through sea water to feed underwater plants." },
+                    { id: "turtle", label: "Sea Turtle", icon: "🐢", x: "20%", y: "35%", fact: "Sea turtles can hold their breath underwater for hours!" },
+                    { id: "clam", label: "Giant Clam", icon: "🦪", x: "80%", y: "75%", fact: "Giant clams can live in the ocean for over one hundred years!" }
+                ],
+                quiz: {
+                    question: "What does Timmy use to make his friends happy?",
+                    audioQuestion: "What does Timmy use to make his friends happy?",
+                    options: [
+                        { text: "A) Kind words", correct: true, audio: "Option A: Kind words" },
+                        { text: "B) Loud screaming", correct: false, audio: "Option B: Loud screaming" }
+                    ]
+                }
+            },
+            {
+                id: 5,
+                title: "5. The Gentle Leopard Shark",
+                text: "Down on the sandy sea floor, Leo finds Lucy the Leopard Shark. Lucy has pretty dark spots like a leopard. She spends her day resting quietly on the sand. Lucy never bites or pushes. Leo remembers that we keep our hands and fins to ourselves. Keeping hands to ourselves keeps all our friends safe.",
+                hotspots: [
+                    { id: "leopard-shark", label: "Leopard Shark", icon: "🦈", x: "50%", y: "65%", fact: "Leopard sharks are very calm and love resting on sandy ocean bottoms." },
+                    { id: "sand", label: "Sandy Bottom", icon: "🏖️", x: "25%", y: "85%", fact: "Ocean sand is made of tiny ground rocks and shells." },
+                    { id: "starfish", label: "Sea Star", icon: "⭐", x: "75%", y: "80%", fact: "Sea stars do not have brains or blood, but they have five arms!" },
+                    { id: "jellyfish", label: "Jellyfish", icon: "🪼", x: "80%", y: "25%", fact: "Jellyfish float gently with ocean currents." }
+                ],
+                quiz: {
+                    question: "How does Lucy treat her ocean friends?",
+                    audioQuestion: "How does Lucy treat her ocean friends?",
+                    options: [
+                        { text: "A) Keeps her fins to herself", correct: true, audio: "Option A: Keeps her fins to herself" },
+                        { text: "B) Pushes in line", correct: false, audio: "Option B: Pushes in line" }
+                    ]
+                }
+            },
+            {
+                id: 6,
+                title: "6. The Glowing Lanternshark",
+                text: "Leo swims deeper into the dark blue water. Suddenly, he sees Luke the Lanternshark! Luke glows in the dark with bright green light. His light helps him see in the dark sea. When Leo feels stuck or confused on a lesson, he asks an adult for help. Asking for help is like turning on a bright light!",
+                hotspots: [
+                    { id: "lanternshark", label: "Lanternshark", icon: "🦈", x: "45%", y: "50%", fact: "Lanternsharks generate their own glow using bioluminescence!" },
+                    { id: "glow-bubbles", label: "Glow Dots", icon: "🟢", x: "65%", y: "35%", fact: "Bioluminescence is chemical light made inside living sea creatures." },
+                    { id: "squid", label: "Deep Squid", icon: "🦑", x: "20%", y: "60%", fact: "Squids use ink to distract predator animals when escaping." },
+                    { id: "treasure", label: "Chest", icon: "🏴‍☠️", x: "80%", y: "80%", fact: "Sunken ships hold old stories and historical treasures!" }
+                ],
+                quiz: {
+                    question: "What should Leo do when he feels confused?",
+                    audioQuestion: "What should Leo do when he feels confused?",
+                    options: [
+                        { text: "A) Ask an adult for help", correct: true, audio: "Option A: Ask an adult for help" },
+                        { text: "B) Hide under a rock", correct: false, audio: "Option B: Hide under a rock" }
+                    ]
+                }
+            },
+            {
+                id: 7,
+                title: "7. The Kelp Forest Explorers",
+                text: "Leo visits a tall kelp forest. The kelp plants grow up like giant ocean trees! Leo meets a friendly Hornshark named Holly. Holly sleeps hidden inside the tall kelp. Leo sees sea otters sharing clams. Leo learns that sharing toys and space with friends makes playtime much more fun.",
+                hotspots: [
+                    { id: "hornshark", label: "Hornshark", icon: "🦈", x: "40%", y: "55%", fact: "Hornsharks have sharp horns on their backs to protect them while sleeping." },
+                    { id: "otter", label: "Sea Otter", icon: "🦦", x: "70%", y: "30%", fact: "Otters hold hands while sleeping so they do not float away!" },
+                    { id: "kelp-tree", label: "Kelp Tree", icon: "🌿", x: "20%", y: "45%", fact: "Giant kelp can grow up to two feet every single day!" },
+                    { id: "urchin", label: "Sea Urchin", icon: "🦔", x: "80%", y: "80%", fact: "Urchins are round spiky creatures that eat kelp roots." }
+                ],
+                quiz: {
+                    question: "What makes playtime more fun in the kelp forest?",
+                    audioQuestion: "What makes playtime more fun in the kelp forest?",
+                    options: [
+                        { text: "A) Sharing with friends", correct: true, audio: "Option A: Sharing with friends" },
+                        { text: "B) Keeping all toys", correct: false, audio: "Option B: Keeping all toys" }
+                    ]
+                }
+            },
+            {
+                id: 8,
+                title: "8. The Coral Reef Cleanup",
+                text: "Leo swims to a glowing coral reef. Colorful clownfish play in anemones. Leo sees a stray plastic wrapper floating by. He uses his mouth to drop it into a recycling bin on the reef boat. Leo learns that keeping our learning space clean helps everyone do their best work!",
+                hotspots: [
+                    { id: "clownfish", label: "Clownfish", icon: "🐠", x: "35%", y: "45%", fact: "Clownfish are immune to sea anemone stings!" },
+                    { id: "anemone", label: "Anemone", icon: "🪸", x: "30%", y: "65%", fact: "Sea anemones look like flowers but are actually meat-eating animals!" },
+                    { id: "recycling", label: "Clean Reef", icon: "♻️", x: "75%", y: "40%", fact: "Cleaning up trash protects sea turtles and fish." },
+                    { id: "shrimp", label: "Cleaner Shrimp", icon: "🦐", x: "80%", y: "75%", fact: "Cleaner shrimp pick tiny bugs off bigger fish to keep them healthy!" }
+                ],
+                quiz: {
+                    question: "Why did Leo clean up the floating trash?",
+                    audioQuestion: "Why did Leo clean up the floating trash?",
+                    options: [
+                        { text: "A) To keep the ocean clean", correct: true, audio: "Option A: To keep the ocean clean" },
+                        { text: "B) To play catch with it", correct: false, audio: "Option B: To play catch with it" }
+                    ]
+                }
+            },
+            {
+                id: 9,
+                title: "9. The Camouflaged Angel Shark",
+                text: "Leo swims over a patch of flat sand. Suddenly, the sand moves! It is Amy the Angel Shark. Amy looks flat like a pancake and hides under sand. Amy stays very still and waits patiently for her turn to hunt. Leo learns that waiting patiently for his turn in class shows great respect.",
+                hotspots: [
+                    { id: "angel-shark", label: "Angel Shark", icon: "🦈", x: "50%", y: "70%", fact: "Angel sharks bury themselves in sand to camouflage from danger!" },
+                    { id: "flat-fish", label: "Flounder", icon: "🐟", x: "25%", y: "75%", fact: "Flounder fish have both eyes on one side of their head!" },
+                    { id: "sea-cucumber", label: "Sea Cucumber", icon: "🥒", x: "75%", y: "80%", fact: "Sea cucumbers crawl along the bottom to clean up the sand." },
+                    { id: "bubbles", label: "Air Bubbles", icon: "🫧", x: "50%", y: "25%", fact: "Air bubbles give oxygen back to the water." }
+                ],
+                quiz: {
+                    question: "What good choice does Amy teach us about waiting?",
+                    audioQuestion: "What good choice does Amy teach us about waiting?",
+                    options: [
+                        { text: "A) Wait patiently for your turn", correct: true, audio: "Option A: Wait patiently for your turn" },
+                        { text: "B) Yell and jump ahead", correct: false, audio: "Option B: Yell and jump ahead" }
+                    ]
+                }
+            },
+            {
+                id: 10,
+                title: "10. The Thresher Shark's Long Tail",
+                text: "Leo watches Theo the Thresher Shark swim fast. Theo has a tail as long as his whole body! He uses his tail to whip the water and catch small fish. Theo uses his tail safely and never hits his friends. Leo remembers that we use gentle hands and bodies near our classmates.",
+                hotspots: [
+                    { id: "thresher", label: "Thresher Shark", icon: "🦈", x: "45%", y: "40%", fact: "A thresher shark's tail is half of its total body length!" },
+                    { id: "fish-school", label: "Sardines", icon: "🐟", x: "75%", y: "55%", fact: "Sardines swim in big tight circles to confuse bigger fish." },
+                    { id: "octopus", label: "Octopus", icon: "🐙", x: "20%", y: "70%", fact: "Octopuses have three hearts and blue blood!" },
+                    { id: "seagrass", label: "Seagrass", icon: "🌾", x: "85%", y: "80%", fact: "Seagrass beds provide safe nurseries for baby sea life." }
+                ],
+                quiz: {
+                    question: "How should we move our hands and bodies near friends?",
+                    audioQuestion: "How should we move our hands and bodies near friends?",
+                    options: [
+                        { text: "A) With gentle actions", correct: true, audio: "Option A: With gentle actions" },
+                        { text: "B) Rough and wild", correct: false, audio: "Option B: Rough and wild" }
+                    ]
+                }
+            },
+            {
+                id: 11,
+                title: "11. The Basking Shark's Big Mouth",
+                text: "Leo sees Bruno the Basking Shark swimming near the surface. Bruno opens his mouth wide like a giant cavern! He filters thousands of gallons of water to catch tiny food. While Bruno eats, he listens carefully to the ocean sounds. Leo practices listening quietly when teachers or friends speak.",
+                hotspots: [
+                    { id: "basking", label: "Basking Shark", icon: "🦈", x: "45%", y: "45%", fact: "Basking sharks are the second largest fish in the entire world!" },
+                    { id: "plankton-swarm", label: "Krill Swarm", icon: "🦐", x: "70%", y: "35%", fact: "Krill are tiny shrimp-like animals eaten by whales and sharks." },
+                    { id: "seagull", label: "Seagull", icon: "🐦", x: "30%", y: "15%", fact: "Seagulls fly above the ocean looking for small fish near top water." },
+                    { id: "sponge", label: "Sea Sponge", icon: "🧽", x: "80%", y: "80%", fact: "Sea sponges pump water through their bodies to eat." }
+                ],
+                quiz: {
+                    question: "What should we do when someone is speaking?",
+                    audioQuestion: "What should we do when someone is speaking?",
+                    options: [
+                        { text: "A) Listen quietly", correct: true, audio: "Option A: Listen quietly" },
+                        { text: "B) Make loud noises", correct: false, audio: "Option B: Make loud noises" }
+                    ]
+                }
+            },
+            {
+                id: 12,
+                title: "12. The Goblin Shark's Deep Sea Jaws",
+                text: "Leo travels down into the deep trenches. He meets Gabe the Goblin Shark! Gabe has a long pink snout and jaws that snap out fast. Gabe looks very unique and different. Leo knows that every classmate is unique and special. We welcome new friends even if they look or talk differently!",
+                hotspots: [
+                    { id: "goblin-shark", label: "Goblin Shark", icon: "🦈", x: "40%", y: "50%", fact: "Goblin sharks can shoot their jaws forward to catch food!" },
+                    { id: "anglerfish", label: "Anglerfish", icon: "🐟", x: "75%", y: "40%", fact: "Anglerfish have a glowing fishing lure attached to their head!" },
+                    { id: "deep-vent", label: "Hydro Vent", icon: "🌋", x: "20%", y: "75%", fact: "Deep sea vents shoot super hot mineral water into the ocean." },
+                    { id: "crab-king", label: "Spider Crab", icon: "🦀", x: "80%", y: "80%", fact: "Japanese spider crabs can grow leg spans up to twelve feet wide!" }
+                ],
+                quiz: {
+                    question: "How do we treat classmates who look or feel different?",
+                    audioQuestion: "How do we treat classmates who look or feel different?",
+                    options: [
+                        { text: "A) Welcome them nicely", correct: true, audio: "Option A: Welcome them nicely" },
+                        { text: "B) Ignore them", correct: false, audio: "Option B: Ignore them" }
+                    ]
+                }
+            },
+            {
+                id: 13,
+                title: "13. The Resting Nurse Shark",
+                text: "Leo finds Nina the Nurse Shark lying under a rock ledge. Nina does not need to keep swimming to breathe. She pumps water over her gills while lying completely still. Nina takes a quiet break when she feels tired. Leo learns that taking a quiet break helps us recharge our brains when tired.",
+                hotspots: [
+                    { id: "nurse-shark", label: "Nurse Shark", icon: "🦈", x: "50%", y: "65%", fact: "Nurse sharks can rest still on the sea floor while breathing!" },
+                    { id: "cave", label: "Rock Ledge", icon: "🪨", x: "25%", y: "50%", fact: "Underwater caves give quiet shade for resting sea animals." },
+                    { id: "eel", label: "Moray Eel", icon: "🐍", x: "80%", y: "60%", fact: "Moray eels peek out of rock holes to guard their homes." },
+                    { id: "lobsters", label: "Spiny Lobster", icon: "🦞", x: "15%", y: "80%", fact: "Lobsters walk backward fast when escaping danger!" }
+                ],
+                quiz: {
+                    question: "What helps us recharge when our brain feels tired?",
+                    audioQuestion: "What helps us recharge when our brain feels tired?",
+                    options: [
+                        { text: "A) Taking a quiet break", correct: true, audio: "Option A: Taking a quiet break" },
+                        { text: "B) Running in circles", correct: false, audio: "Option B: Running in circles" }
+                    ]
+                }
+            },
+            {
+                id: 14,
+                title: "14. The Zebra Shark's Transformation",
+                text: "Leo meets Ziggy the Zebra Shark. When Ziggy was a baby, he had dark stripes like a zebra. Now that he is older, his stripes turned into small polka dots! Ziggy shows Leo that it is wonderful to grow and change. Every day at school, Leo learns new phonics sounds and grows smarter!",
+                hotspots: [
+                    { id: "zebra-shark", label: "Zebra Shark", icon: "🦈", x: "45%", y: "45%", fact: "Zebra sharks change from stripes to polka dots as they grow up!" },
+                    { id: "sea-fan", label: "Sea Fan Coral", icon: "🪸", x: "20%", y: "70%", fact: "Sea fans are soft corals that grow in the shape of wide fans." },
+                    { id: "nautilus", label: "Nautilus", icon: "🐚", x: "75%", y: "35%", fact: "Nautiluses have lived in oceans for hundreds of millions of years!" },
+                    { id: "rays", label: "Spotted Ray", icon: "🪼", x: "80%", y: "75%", fact: "Eagle rays jump completely out of the sea water!" }
+                ],
+                quiz: {
+                    question: "What happens every day as Leo learns new words?",
+                    audioQuestion: "What happens every day as Leo learns new words?",
+                    options: [
+                        { text: "A) He grows smarter", correct: true, audio: "Option A: He grows smarter" },
+                        { text: "B) He turns into a fish", correct: false, audio: "Option B: He turns into a fish" }
+                    ]
+                }
+            },
+            {
+                id: 15,
+                title: "15. The Epaulette Shark Walks",
+                text: "Leo visits a shallow tide pool. He meets Eddie the Epaulette Shark. Eddie can walk across dry rocks using his paddle fins! When Eddie gets stuck in a shallow pool, he does not panic. He tries new ideas until he walks back to deep water. Leo learns to try new ways to solve tough problems!",
+                hotspots: [
+                    { id: "walking-shark", label: "Epaulette Shark", icon: "🦈", x: "45%", y: "55%", fact: "Epaulette sharks can actually walk on land and dry rocks!" },
+                    { id: "tide-pool", label: "Tide Pool", icon: "🌊", x: "20%", y: "40%", fact: "Tide pools are small shallow pockets of sea water left on rocks." },
+                    { id: "sea-anemone", label: "Red Anemone", icon: "🌺", x: "75%", y: "70%", fact: "Anemones stick tight to rocks during strong sea waves." },
+                    { id: "barnacles", label: "Barnacles", icon: "🪨", x: "80%", y: "85%", fact: "Barnacles lock onto hard surfaces and filter ocean water." }
+                ],
+                quiz: {
+                    question: "What does Eddie do when he encounters a tough problem?",
+                    audioQuestion: "What does Eddie do when he encounters a tough problem?",
+                    options: [
+                        { text: "A) Tries new ideas calmly", correct: true, audio: "Option A: Tries new ideas calmly" },
+                        { text: "B) Gives up right away", correct: false, audio: "Option B: Gives up right away" }
+                    ]
+                }
+            },
+            {
+                id: 16,
+                title: "16. Leo's Great Ocean Graduation",
+                text: "Leo the Sea Turtle swims back to his sandy beach home. All sixteen shark friends gather to cheer for Leo! Leo learned amazing shark facts. He also learned how to use kind words, take deep breaths, keep hands to himself, and listen nicely. Leo is a Super Ocean Reader and a great friend!",
+                hotspots: [
+                    { id: "graduation-turtle", label: "Super Turtle", icon: "🐢", x: "45%", y: "45%", fact: "Leo graduated as a Super Reader and wonderful friend!" },
+                    { id: "trophy", label: "Gold Star", icon: "⭐", x: "75%", y: "30%", fact: "You earned a Gold Star for reading all sixteen chapters!" },
+                    { id: "fireworks", label: "Ocean Celebration", icon: "🎉", x: "20%", y: "25%", fact: "All ocean animals celebrate your amazing learning journey!" },
+                    { id: "beach", label: "Sandy Beach", icon: "🏖️", x: "80%", y: "80%", fact: "Sandy beaches are nesting grounds for sea turtles!" }
+                ],
+                quiz: {
+                    question: "Why are all the ocean animals cheering for Leo?",
+                    audioQuestion: "Why are all the ocean animals cheering for Leo?",
+                    options: [
+                        { text: "A) He is a great reader and friend!", correct: true, audio: "Option A: He is a great reader and friend!" },
+                        { text: "B) He ate all the sea cookies", correct: false, audio: "Option B: He ate all the sea cookies" }
+                    ]
+                }
+            }
+        ];
+
+        let currentChapterIdx = 0;
+        let isReading = false;
+        let isPaused = false;
+        let speechRate = 1.0;
+        let availableVoices = [];
+        let selectedVoice = null;
+        let currentUtterance = null;
+        let sentenceIndices = [];
+        let currentSentenceIdx = 0;
+        let activeWordSpans = [];
+
+        // Web Audio API Context setup
+        let audioCtx = null;
+
+        function getAudioContext() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+            return audioCtx;
+        }
+
+        // Web Audio Synthesized Sound Effects
+        function playSoundEffect(type) {
+            try {
+                const ctx = getAudioContext();
+                if (!ctx) return;
+
+                if (type === 'bubble') {
+                    // Bubble pop frequency sweep
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(300, ctx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(800, ctx.currentTime + 0.08);
+                    gain.gain.setValueAtTime(0.3, ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.08);
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    osc.start();
+                    osc.stop(ctx.currentTime + 0.08);
+                } else if (type === 'splash') {
+                    // Soft splash noise burst
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(150, ctx.currentTime);
+                    osc.frequency.linearRampToValueAtTime(40, ctx.currentTime + 0.15);
+                    gain.gain.setValueAtTime(0.4, ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.15);
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    osc.start();
+                    osc.stop(ctx.currentTime + 0.15);
+                } else if (type === 'success') {
+                    // Victory chime arpeggio C5 - E5 - G5 - C6
+                    const freqs = [523.25, 659.25, 783.99, 1046.50];
+                    freqs.forEach((f, index) => {
+                        const osc = ctx.createOscillator();
+                        const gain = ctx.createGain();
+                        osc.type = 'sine';
+                        osc.frequency.setValueAtTime(f, ctx.currentTime + index * 0.09);
+                        gain.gain.setValueAtTime(0.25, ctx.currentTime + index * 0.09);
+                        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + index * 0.09 + 0.25);
+                        osc.connect(gain);
+                        gain.connect(ctx.destination);
+                        osc.start(ctx.currentTime + index * 0.09);
+                        osc.stop(ctx.currentTime + index * 0.09 + 0.25);
+                    });
+                } else if (type === 'retry') {
+                    // Gentle soft descending tone E4 to C4
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(329.63, ctx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(261.63, ctx.currentTime + 0.2);
+                    gain.gain.setValueAtTime(0.2, ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.2);
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    osc.start();
+                    osc.stop(ctx.currentTime + 0.2);
+                }
+            } catch (e) {
+                console.log("Audio FX error:", e);
+            }
+        }
+
+        function initVoices() {
+            if (!('speechSynthesis' in window)) {
+                alert("Speech Synthesis is not supported in your browser.");
+                return;
+            }
+
+            function populateVoices() {
+                availableVoices = window.speechSynthesis.getVoices();
+                const select = document.getElementById('voice-select');
+                select.innerHTML = '';
+
+                if (availableVoices.length === 0) return;
+
+                // Sort and prioritize English voices with natural sounding indicators
+                const preferredKeywords = ['natural', 'google us english', 'samantha', 'jenny', 'guy', 'aria', 'karen', 'daniel', 'en-us', 'en-gb'];
+                
+                let bestMatch = null;
+
+                availableVoices.forEach((voice, index) => {
+                    const option = document.createElement('option');
+                    option.value = index;
+                    option.textContent = `${voice.name} (${voice.lang})`;
+                    
+                    // Filter mainly English
+                    if (voice.lang.startsWith('en')) {
+                        select.appendChild(option);
+                    }
+
+                    const nameLower = voice.name.toLowerCase();
+                    if (!bestMatch) {
+                        for (let kw of preferredKeywords) {
+                            if (nameLower.includes(kw)) {
+                                bestMatch = voice;
+                                break;
+                            }
+                        }
+                    }
+                });
+
+                if (select.children.length === 0) {
+                    // Fallback to all voices if no english specifically
+                    availableVoices.forEach((voice, index) => {
+                        const option = document.createElement('option');
+                        option.value = index;
+                        option.textContent = `${voice.name} (${voice.lang})`;
+                        select.appendChild(option);
+                    });
+                }
+
+                // Default selection
+                if (bestMatch) {
+                    const bestIndex = availableVoices.indexOf(bestMatch);
+                    select.value = bestIndex;
+                    selectedVoice = bestMatch;
+                } else if (availableVoices.length > 0) {
+                    selectedVoice = availableVoices[0];
+                    select.value = 0;
+                }
+            }
+
+            populateVoices();
+            if (speechSynthesis.onvoiceschanged !== undefined) {
+                speechSynthesis.onvoiceschanged = populateVoices;
+            }
+        }
+
+        function onVoiceChange() {
+            const select = document.getElementById('voice-select');
+            const val = select.value;
+            if (val !== "" && availableVoices[val]) {
+                selectedVoice = availableVoices[val];
+            }
+            if (isReading) {
+                stopSpeech();
+                speakCurrentSentenceOrAll();
+            }
+        }
+
+        function toggleSpeed() {
+            if (speechRate === 1.0) {
+                speechRate = 0.8;
+            } else if (speechRate === 0.8) {
+                speechRate = 0.65; // Slow reading mode
+            } else {
+                speechRate = 1.0;
+            }
+            document.getElementById('speed-label').textContent = speechRate.toFixed(1) + 'x';
+            if (isReading) {
+                stopSpeech();
+                speakCurrentSentenceOrAll();
+            }
+        }
+
+        function renderChapterPicker() {
+            const select = document.getElementById('chapter-select');
+            select.innerHTML = '';
+            storyChapters.forEach((ch, idx) => {
+                const opt = document.createElement('option');
+                opt.value = idx;
+                opt.textContent = ch.title;
+                select.appendChild(opt);
+            });
+            select.value = currentChapterIdx;
+        }
+
+        function loadChapter(idx) {
+            stopSpeech();
+            currentChapterIdx = idx;
+            const ch = storyChapters[idx];
+
+            // Update Chapter Navigation Header
+            document.getElementById('chapter-select').value = idx;
+            document.getElementById('chapter-badge').textContent = `Chapter ${idx + 1}`;
+            document.getElementById('chapter-progress-text').textContent = `Chapter ${idx + 1} of 16`;
+            document.getElementById('chapter-title').textContent = ch.title;
+
+            // Render Story Text with Clickable & Highlightable Word Spans
+            const storyContainer = document.getElementById('story-display');
+            storyContainer.innerHTML = '';
+
+            // Split into sentences first
+            const sentences = ch.text.match(/[^.!?]+[.!?]+/g) || [ch.text];
+            let globalWordCount = 0;
+
+            sentences.forEach((sentenceText, sIdx) => {
+                const sentenceSpan = document.createElement('span');
+                sentenceSpan.className = 'sentence-block';
+                sentenceSpan.dataset.sentenceIndex = sIdx;
+
+                const words = sentenceText.trim().split(/\s+/);
+                words.forEach((word) => {
+                    const wordSpan = document.createElement('span');
+                    wordSpan.className = 'word-span';
+                    wordSpan.id = `word-${globalWordCount}`;
+                    wordSpan.dataset.wordText = word.replace(/[^a-zA-Z]/g, ""); // Clean string for TTS
+                    wordSpan.textContent = word;
+                    
+                    // Click individual word to hear pronunciation
+                    wordSpan.onclick = (e) => {
+                        e.stopPropagation();
+                        speakWord(word, wordSpan.id);
+                    };
+
+                    sentenceSpan.appendChild(wordSpan);
+                    sentenceSpan.appendChild(document.createTextNode(' '));
+                    globalWordCount++;
+                });
+
+                storyContainer.appendChild(sentenceSpan);
+            });
+
+            // Render Hotspot Visual Scene
+            renderHotspots(ch.hotspots);
+
+            // Render Literacy & Phonics Quiz
+            renderQuiz(ch.quiz);
+
+            // Hide Fact Box
+            closeFactBox();
+
+            // Reset Feedback Box
+            const fb = document.getElementById('quiz-feedback');
+            fb.classList.add('hidden');
+        }
+
+        function renderHotspots(hotspots) {
+            const container = document.getElementById('scene-container');
+            container.innerHTML = '';
+
+            // SVG Water Rays and Marine Background
+            const svgBg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+            svgBg.setAttribute("class", "absolute inset-0 w-full h-full pointer-events-none opacity-30");
+            svgBg.innerHTML = `
+                <defs>
+                    <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" style="stop-color:#38bdf8;stop-opacity:0.8" />
+                        <stop offset="100%" style="stop-color:#0369a1;stop-opacity:0.9" />
+                    </linearGradient>
+                </defs>
+                <rect width="100%" height="100%" fill="url(#grad1)" />
+                <circle cx="10%" cy="20%" r="80" fill="#ffffff" opacity="0.15" />
+                <circle cx="85%" cy="30%" r="120" fill="#ffffff" opacity="0.1" />
+                <circle cx="50%" cy="80%" r="150" fill="#000000" opacity="0.2" />
+            `;
+            container.appendChild(svgBg);
+
+            // Render Hotspots Buttons
+            hotspots.forEach((hs) => {
+                const btn = document.createElement('button');
+                btn.className = 'absolute z-10 transform -translate-x-1/2 -translate-y-1/2 bg-white/90 hover:bg-amber-300 text-slate-900 font-extrabold text-2xl sm:text-3xl p-3 sm:p-4 rounded-full shadow-2xl border-4 border-amber-400 active:scale-95 transition-all duration-200 animate-hotspot flex items-center justify-center gap-1 group';
+                btn.style.left = hs.x;
+                btn.style.top = hs.y;
+                btn.setAttribute('aria-label', hs.label);
+
+                btn.innerHTML = `
+                    <span>${hs.icon}</span>
+                    <span class="max-w-0 overflow-hidden group-hover:max-w-xs transition-all duration-300 ease-in-out text-base font-bold whitespace-nowrap text-sky-950 px-0 group-hover:px-2">
+                        ${hs.label}
+                    </span>
+                `;
+
+                btn.onclick = () => {
+                    playSoundEffect('bubble');
+                    showFact(hs.icon, hs.label, hs.fact);
+                };
+
+                container.appendChild(btn);
+            });
+        }
+
+        function showFact(icon, title, factText) {
+            const box = document.getElementById('hotspot-fact-box');
+            document.getElementById('fact-icon').textContent = icon;
+            document.getElementById('fact-title').textContent = title;
+            document.getElementById('fact-text').textContent = factText;
+
+            box.classList.remove('opacity-0', 'scale-95', 'pointer-events-none');
+            box.classList.add('opacity-100', 'scale-100');
+
+            // Speak Fact using TTS
+            speakText(`${title}! ${factText}`);
+        }
+
+        function closeFactBox() {
+            const box = document.getElementById('hotspot-fact-box');
+            box.classList.add('opacity-0', 'scale-95', 'pointer-events-none');
+            box.classList.remove('opacity-100', 'scale-100');
+        }
+
+        function renderQuiz(quiz) {
+            document.getElementById('quiz-question-text').textContent = quiz.question;
+            const container = document.getElementById('quiz-options-container');
+            container.innerHTML = '';
+
+            quiz.options.forEach((opt) => {
+                const btn = document.createElement('button');
+                btn.className = 'bg-white hover:bg-amber-100 text-slate-900 text-2xl font-bold p-5 rounded-2xl border-4 border-amber-300 shadow-lg active:translate-y-1 transition-all text-left flex items-center justify-between gap-3 group';
+                
+                btn.innerHTML = `
+                    <span class="flex items-center gap-3">
+                        <span class="text-amber-500 group-hover:scale-125 transition-transform">👉</span>
+                        <span>${opt.text}</span>
+                    </span>
+                    <span class="bg-amber-200 hover:bg-amber-300 p-2.5 rounded-xl text-amber-900 text-xl border border-amber-400" onclick="event.stopPropagation(); speakText('${opt.audio}');" title="Listen to option">
+                        <i class="fa-solid fa-volume-high"></i>
+                    </span>
+                `;
+
+                btn.onclick = () => {
+                    checkQuizAnswer(opt.correct, opt.text);
+                };
+
+                container.appendChild(btn);
+            });
+        }
+
+        function speakQuestionAudio() {
+            const ch = storyChapters[currentChapterIdx];
+            speakText(ch.quiz.audioQuestion);
+        }
+
+        function checkQuizAnswer(isCorrect, optionText) {
+            const feedbackBox = document.getElementById('quiz-feedback');
+            const feedbackText = document.getElementById('feedback-text');
+            const feedbackIcon = document.getElementById('feedback-icon');
+
+            feedbackBox.classList.remove('hidden', 'bg-emerald-200', 'border-emerald-500', 'text-emerald-950', 'bg-rose-200', 'border-rose-500', 'text-rose-950');
+
+            if (isCorrect) {
+                playSoundEffect('success');
+                feedbackBox.classList.add('bg-emerald-200', 'border-4', 'border-emerald-500', 'text-emerald-950');
+                feedbackIcon.textContent = '🌟';
+                feedbackText.textContent = 'Great job! You answered correctly!';
+                speakText("Great job! That is correct!");
+            } else {
+                playSoundEffect('retry');
+                feedbackBox.classList.add('bg-rose-200', 'border-4', 'border-rose-500', 'text-rose-950');
+                feedbackIcon.textContent = '💡';
+                feedbackText.textContent = 'Try again! You can do it!';
+                speakText("Good try! Take another guess!");
+            }
+        }
+
+        function speakWord(word, elementId) {
+            stopSpeech();
+            playSoundEffect('splash');
+
+            const cleanWord = word.replace(/[^a-zA-Z]/g, "");
+            if (!cleanWord) return;
+
+            // Highlight word briefly
+            if (elementId) {
+                const el = document.getElementById(elementId);
+                if (el) {
+                    el.classList.add('word-highlight');
+                    setTimeout(() => el.classList.remove('word-highlight'), 900);
+                }
+            }
+
+            const utterance = new SpeechSynthesisUtterance(cleanWord);
+            if (selectedVoice) utterance.voice = selectedVoice;
+            utterance.rate = speechRate;
+            window.speechSynthesis.speak(utterance);
+        }
+
+        function speakText(text) {
+            stopSpeech();
+            const utterance = new SpeechSynthesisUtterance(text);
+            if (selectedVoice) utterance.voice = selectedVoice;
+            utterance.rate = speechRate;
+            window.speechSynthesis.speak(utterance);
+        }
+
+        function toggleReadPage() {
+            if (isReading) {
+                stopSpeech();
+            } else {
+                speakCurrentSentenceOrAll();
+            }
+        }
+
+        function speakCurrentSentenceOrAll() {
+            stopSpeech();
+            isReading = true;
+            isPaused = false;
+            updateReadButtonUI(true);
+
+            const ch = storyChapters[currentChapterIdx];
+            // Split full text into sentences
+            const sentences = ch.text.match(/[^.!?]+[.!?]+/g) || [ch.text];
+            let currentSIndex = 0;
+
+            function playNextSentence() {
+                if (!isReading || currentSIndex >= sentences.length) {
+                    stopSpeech();
+                    return;
+                }
+
+                const sentenceText = sentences[currentSIndex];
+                const utterance = new SpeechSynthesisUtterance(sentenceText);
+                if (selectedVoice) utterance.voice = selectedVoice;
+                utterance.rate = speechRate;
+
+                // Synchronized Word Highlighting using speech synthesis boundary events
+                const allSpans = Array.from(document.querySelectorAll('#story-display .word-span'));
+                
+                // Track word boundaries
+                utterance.onboundary = (event) => {
+                    if (event.name === 'word') {
+                        // Clear existing highlights
+                        allSpans.forEach(s => s.classList.remove('word-highlight'));
+
+                        // Calculate approximate matching word index
+                        const charIndex = event.charIndex;
+                        let accumulatedChars = 0;
+
+                        for (let span of allSpans) {
+                            const wordLen = span.textContent.length + 1;
+                            if (accumulatedChars >= charIndex) {
+                                span.classList.add('word-highlight');
+                                span.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                                break;
+                            }
+                            accumulatedChars += wordLen;
+                        }
+                    }
+                };
+
+                utterance.onend = () => {
+                    // Clear highlights
+                    allSpans.forEach(s => s.classList.remove('word-highlight'));
+
+                    currentSIndex++;
+                    if (currentSIndex < sentences.length && isReading) {
+                        // MANDATORY 1.2 SECOND PAUSE BETWEEN SENTENCES FOR ACCESSIBILITY & COMPREHENSION
+                        setTimeout(() => {
+                            if (isReading && !isPaused) {
+                                playNextSentence();
+                            }
+                        }, 1200);
+                    } else {
+                        stopSpeech();
+                    }
+                };
+
+                utterance.onerror = () => {
+                    stopSpeech();
+                };
+
+                currentUtterance = utterance;
+                window.speechSynthesis.speak(utterance);
+            }
+
+            playNextSentence();
+        }
+
+        function pauseSpeech() {
+            if (window.speechSynthesis.speaking) {
+                if (isPaused) {
+                    window.speechSynthesis.resume();
+                    isPaused = false;
+                    document.getElementById('pause-icon').className = 'fa-solid fa-pause text-2xl';
+                } else {
+                    window.speechSynthesis.pause();
+                    isPaused = true;
+                    document.getElementById('pause-icon').className = 'fa-solid fa-play text-2xl';
+                }
+            }
+        }
+
+        function stopSpeech() {
+            isReading = false;
+            isPaused = false;
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+            }
+            updateReadButtonUI(false);
+
+            // Clear word highlights
+            const allSpans = document.querySelectorAll('#story-display .word-span');
+            allSpans.forEach(s => s.classList.remove('word-highlight'));
+        }
+
+        function updateReadButtonUI(reading) {
+            const btn = document.getElementById('btn-read-page');
+            const icon = document.getElementById('read-icon');
+            const text = document.getElementById('read-text');
+
+            if (reading) {
+                btn.className = 'bg-rose-500 hover:bg-rose-600 text-white font-bold text-xl px-5 py-3 rounded-2xl shadow-lg border-b-4 border-rose-700 active:translate-y-1 transition-all flex items-center gap-2';
+                icon.className = 'fa-solid fa-stop text-2xl';
+                text.textContent = 'Stop Reading';
+            } else {
+                btn.className = 'bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xl px-5 py-3 rounded-2xl shadow-lg border-b-4 border-emerald-700 active:translate-y-1 transition-all flex items-center gap-2';
+                icon.className = 'fa-solid fa-volume-high text-2xl';
+                text.textContent = 'Read To Me';
+                document.getElementById('pause-icon').className = 'fa-solid fa-pause text-2xl';
+            }
+        }
+
+        function changeChapter(delta) {
+            let newIdx = currentChapterIdx + delta;
+            if (newIdx >= 0 && newIdx < storyChapters.length) {
+                loadChapter(newIdx);
+            }
+        }
+
+        function jumpToChapter(idx) {
+            const val = parseInt(idx, 10);
+            if (!isNaN(val) && val >= 0 && val < storyChapters.length) {
+                loadChapter(val);
+            }
+        }
+
+        // Keyboard Shortcut Navigation for Access
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowRight') {
+                changeChapter(1);
+            } else if (e.key === 'ArrowLeft') {
+                changeChapter(-1);
+            } else if (e.key === ' ') {
+                // Spacebar toggles speech
+                e.preventDefault();
+                toggleReadPage();
+            }
+        });
+
+        // Initialize Application on Load
+        window.onload = function () {
+            initVoices();
+            renderChapterPicker();
+            loadChapter(0);
+        };
+    </script>
+</body>
+</html>
